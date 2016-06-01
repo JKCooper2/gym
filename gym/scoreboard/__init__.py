@@ -52,9 +52,21 @@ add_group(
 )
 
 add_group(
+    id='parameter_tuning',
+    name='Parameter tuning',
+    description='Tune parameters of costly experiments to obtain better outcomes.'
+)
+
+add_group(
     id='toy_text',
     name='Toy text',
     description='Simple text environments to get you started.'
+)
+
+add_group(
+    id='doom',
+    name='Doom',
+    description='Doom environments based on VizDoom.'
 )
 
 # classic control
@@ -221,24 +233,70 @@ add_task(
     summary='Hex played on a 9x9 board.',
 )
 
+
 # box2d
 
 add_task(
-    id='LunarLander-v0',
+    id='LunarLander-v2',
     group='box2d',
     experimental=True,
+    summary='Navigate a lander to its landing pad.',
+    description="""
+Landing pad is always at coordinates (0,0). Coordinates are the first two numbers in state vector.
+Reward for moving from the top of the screen to landing pad and zero speed is about 100..140 points.
+If lander moves away from landing pad it loses reward back. Episode finishes if the lander crashes or
+comes to rest, receiving additional -100 or +100 points. Each leg ground contact is +10. Firing main
+engine is -0.3 points each frame. Solved is 200 points.
+Landing outside landing pad is possible. Fuel is infinite, so an agent can learn to fly and then land
+on its first attempt.
+""")
+
+add_task(
+    id='BipedalWalker-v2',
+    group='box2d',
+    experimental=True,
+    summary='Train a bipedal robot to walk.',
+    description="""
+Reward is given for moving forward, total 300+ points up to the far end. If the robot falls,
+it gets -100. Applying motor torque costs a small amount of points, more optimal agent
+will get better score.
+State consists of hull angle speed, angular velocity, horizontal speed,
+vertical speed, position of joints and joints angular speed, legs contact with ground,
+and 10 lidar rangefinder measurements. There's no coordinates in the state vector.
+"""
 )
 
 add_task(
-    id='BipedalWalker-v0',
+    id='BipedalWalkerHardcore-v2',
     group='box2d',
     experimental=True,
+    summary='Train a bipedal robot to walk over rough terrain.',
+    description="""
+Hardcore version with ladders, stumps, pitfalls. Time limit is increased due to obstacles.
+Reward is given for moving forward, total 300+ points up to the far end. If the robot falls,
+it gets -100. Applying motor torque costs a small amount of points, more optimal agent
+will get better score.
+State consists of hull angle speed, angular velocity, horizontal speed,
+vertical speed, position of joints and joints angular speed, legs contact with ground,
+and 10 lidar rangefinder measurements. There's no coordinates in the state vector.
+"""
 )
 
 add_task(
-    id='BipedalWalkerHardcore-v0',
+    id='CarRacing-v0',
     group='box2d',
     experimental=True,
+    summary='Race a car around a track.',
+    description="""
+Easiest continuous control task to learn from pixels, a top-down racing environment.
+Discreet control is reasonable in this environment as well, on/off discretisation is
+fine. State consists of 96x96 pixels. Reward is -0.1 every frame and +1000/N for every track
+tile visited, where N is the total number of tiles in track. For example, if you have
+finished in 732 frames, your reward is 1000 - 0.1*732 = 926.8 points.
+Episode finishes when all tiles are visited.
+Some indicators shown at the bottom of the window and the state RGB buffer. From
+left to right: true speed, four ABS sensors, steering wheel position, gyroscope.
+"""
 )
 
 # mujoco
@@ -337,6 +395,103 @@ Make a three-dimensional bipedal robot walk forward as fast as possible, without
 The robot model was originally created by Tassa et al. [Tassa12]_.
 
 .. [Tassa12] Y Tassa, T Erez, E Todorov, "Synthesis and Stabilization of Complex Behaviors through Online Trajectory Optimization".
+""",
+)
+
+add_task(
+    id='HumanoidStandup-v1',
+    group='mujoco',
+    summary="Make a 3D two-legged robot standup.",
+    description="""\
+Make a three-dimensional bipedal robot standup as fast as possible.
+""",
+    experimental=True,
+)
+
+# parameter tuning
+add_task(
+    id='ConvergenceControl-v0',
+    group='parameter_tuning',
+    experimental=True,
+    summary="Adjust parameters of training of Deep CNN classifier at every training epoch to improve the end result.",
+    description ="""\
+    Agent can adjust parameters like step size, momentum etc during
+    training of deep convolutional neural net to improve its convergence / quality
+    of end - result. One episode in this environment is a training of one neural net
+    for 20 epochs. Agent can adjust parameters in the beginning of every epoch.
+""",
+    background="""\
+Parameters that agent can adjust are learning rate and momentum coefficients for SGD,
+batch size, l1 and l2 penalty. As a feedback, agent receives # of instances / labels
+in dataset, description of network architecture, and validation accuracy for every epoch.
+
+Architecture of neural network and dataset used are selected randomly at the beginning
+of an episode. Datasets used are MNIST, CIFAR10, CIFAR100. Network architectures contain
+multilayer convnets 66 % of the time, and are [classic] feedforward nets otherwise.
+
+Number of instances in datasets are chosen at random in range from around 100% to 5%
+such that adjustment of l1, l2 penalty coefficients makes more difference.
+
+Let the best accuracy achieved so far at every epoch be denoted as a; Then reward at
+every step is a + a*a. On the one hand side, this encourages fast convergence, as it
+improves cumulative reward over the episode. On the other hand side, improving best
+achieved accuracy is expected to quadratically improve cumulative reward, thus
+encouraging agent to converge fast while achieving high best validation accuracy value.
+
+As the number of labels increases, learning problem becomes more difficult for a fixed
+dataset size. In order to avoid for the agent to ignore more complex datasets, on which
+accuracy is low and concentrate on simple cases which bring bulk of reward, accuracy is
+normalized by the number of labels in a dataset.
+""",
+)
+
+add_task(
+    id='CNNClassifierTraining-v0',
+    group='parameter_tuning',
+    experimental=True,
+    summary="Select architecture of a deep CNN classifier and its training parameters to obtain high accuracy.",
+    description ="""\
+    Agent selects an architecture of deep CNN classifier and training parameters
+    such that it results in high accuracy.
+""",
+    background="""\
+One step in this environment is a training of a deep network for 10 epochs, where
+architecture and training parameters are selected by an agent. One episode in this
+environment have a fixed size of 10 steps.
+
+Training parameters that agent can adjust are learning rate, learning rate decay,
+momentum, batch size, l1 and l2 penalty coefficients. Agent can select up to 5 layers
+of CNN and up to 2 layers of fully connected layers. As a feedback, agent receives
+# of instances in a dataset and a validation accuracy for every step.
+
+For CNN layers architecture selection is done with 5 x 2 matrix, sequence of rows
+in which corresponds to sequence of layers3 of CNN; For every row, if the first entry
+is > 0.5, then a layer is used with # of filters in [1 .. 128] chosen by second entry in
+the row, normalized to [0,1] range. Similarily, architecture of fully connected net
+on used on top of CNN is chosen by 2 x 2 matrix, with number of neurons in [1 ... 1024].
+
+At the beginning of every episode, a dataset to train on is chosen at random.
+Datasets used are MNIST, CIFAR10, CIFAR100. Number of instances in datasets are
+chosen at random in range from around 100% to 5% such that adjustment of l1, l2
+penalty coefficients makes more difference.
+
+Some of the parameters of the dataset are not provided to the agent in order to make
+agent figure it out through experimentation during an episode.
+
+Let the best accuracy achieved so far at every epoch be denoted as a; Then reward at
+every step is a + a*a. On the one hand side, this encourages fast selection of good
+architecture, as it improves cumulative reward over the episode. On the other hand side,
+improving best achieved accuracy is expected to quadratically improve cumulative reward,
+thus encouraging agent to find quickly architectrue and training parameters which lead
+to high accuracy.
+
+As the number of labels increases, learning problem becomes more difficult for a fixed
+dataset size. In order to avoid for the agent to ignore more complex datasets, on which
+accuracy is low and concentrate on simple cases which bring bulk of reward, accuracy is
+normalized by the number of labels in a dataset.
+
+This environment requires Keras with Theano or TensorFlow to run. When run on laptop
+gpu (GTX960M) one step takes on average 2 min.
 """,
 )
 
@@ -455,6 +610,61 @@ The game is simulated through the Arcade Learning Environment [ALE]_, which uses
 .. [Stella] Stella: A Multi-Platform Atari 2600 VCS emulator http://stella.sourceforge.net/
 """,
     )
+
+# doom
+add_task(
+    id='DoomBasic-v0',
+    group='doom',
+    experimental=True,
+)
+
+add_task(
+    id='DoomCorridor-v0',
+    group='doom',
+    experimental=True,
+)
+
+add_task(
+    id='DoomDefendCenter-v0',
+    group='doom',
+    experimental=True,
+)
+
+add_task(
+    id='DoomDefendLine-v0',
+    group='doom',
+    experimental=True,
+)
+
+add_task(
+    id='DoomHealthGathering-v0',
+    group='doom',
+    experimental=True,
+)
+
+add_task(
+    id='DoomMyWayHome-v0',
+    group='doom',
+    experimental=True,
+)
+
+add_task(
+    id='DoomPredictPosition-v0',
+    group='doom',
+    experimental=True,
+)
+
+add_task(
+    id='DoomTakeCover-v0',
+    group='doom',
+    experimental=True,
+)
+
+add_task(
+    id='DoomDeathmatch-v0',
+    group='doom',
+    experimental=True,
+)
 
 # Deprecated
 
