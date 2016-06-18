@@ -258,7 +258,8 @@ class BipedalWalker(gym.Env):
 
     def _reset(self):
         self._destroy()
-        self.world.contactListener = ContactDetector(self)
+        self.world.contactListener_bug_workaround = ContactDetector(self)
+        self.world.contactListener = self.world.contactListener_bug_workaround
         self.game_over = False
         self.prev_shaping = None
         self.scroll = 0.0
@@ -405,7 +406,7 @@ class BipedalWalker(gym.Env):
             1.0 if self.legs[3].ground_contact else 0.0
             ]
         state += [l.fraction for l in self.lidar]
-        assert(len(state)==24)
+        assert len(state)==24
 
         self.scroll = pos.x - VIEWPORT_W/SCALE/5
 
